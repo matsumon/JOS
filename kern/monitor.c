@@ -1,6 +1,5 @@
 // Simple command-line kernel monitor useful for
 // controlling the kernel and exploring the system interactively.
-
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/memlayout.h>
@@ -68,6 +67,24 @@ print_line(int * ebp)
             ebp[4],
             ebp[5],
             ebp[6]
+    );
+    struct Eipdebuginfo info;
+    int x = debuginfo_eip((uintptr_t) ebp[1], &info);
+    int i;
+    char cat_name [info.eip_fn_namelen+1];
+    for(i = 0; i <= info.eip_fn_namelen; i++){
+        cat_name[i] = info.eip_fn_name[i];
+    }
+    cat_name[info.eip_fn_namelen]='\0';
+    int function_bytes = ebp[1] - info.eip_fn_addr;
+    cprintf(
+            "       %s:%d: %.*s+%u\n",
+            info.eip_file,
+            info.eip_line,
+            info.eip_fn_namelen,
+            info.eip_fn_name,
+            //cat_name,
+            function_bytes
     );
 }
 
