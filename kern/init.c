@@ -1,8 +1,9 @@
-/* See COPYRIGHT for copyright information. */
+/* See COPYRIGHT6 for copyright information. */
 
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/x86.h>
 
 #include <kern/monitor.h>
 #include <kern/console.h>

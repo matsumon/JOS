@@ -1,6 +1,5 @@
 // Simple command-line kernel monitor useful for
 // controlling the kernel and exploring the system interactively.
-
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/memlayout.h>
@@ -25,6 +24,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+    { "backtrace", "Show backtrace", mon_backtrace},
+
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -55,16 +56,52 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+void
+print_line(int * ebp)
+{
+    cprintf("  ebp %08x eip %08x args %08x %08x %08x %08x %08x\n",
+            ebp,
+            ebp[1],
+            ebp[2],
+            ebp[3],
+            ebp[4],
+            ebp[5],
+            ebp[6]
+    );
+    struct Eipdebuginfo info;
+    int x = debuginfo_eip((uintptr_t) ebp[1], &info);
+    int i;
+    char cat_name [info.eip_fn_namelen+1];
+    for(i = 0; i <= info.eip_fn_namelen; i++){
+        cat_name[i] = info.eip_fn_name[i];
+    }
+    cat_name[info.eip_fn_namelen]='\0';
+    int function_bytes = ebp[1] - info.eip_fn_addr;
+    cprintf(
+            "       %s:%d: %.*s+%u\n",
+            info.eip_file,
+            info.eip_line,
+            info.eip_fn_namelen,
+            info.eip_fn_name,
+            //cat_name,
+            function_bytes
+    );
+}
+
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// LAB 1: Your code here.
     // HINT 1: use read_ebp().
     // HINT 2: print the current ebp on the first line (not current_ebp[0])
+   cprintf("Stack backtrace:\n");
+   int ebp = read_ebp();
+    while(ebp != 0){
+        print_line((int *)ebp);
+        ebp = *(int *)ebp;
+    }
 	return 0;
 }
-
-
 
 /***** Kernel monitor command interpreter *****/
 
