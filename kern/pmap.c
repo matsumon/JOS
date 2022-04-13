@@ -96,6 +96,21 @@ boot_alloc(uint32_t n)
 		extern char end[];
 		nextfree = ROUNDUP((char *) end, PGSIZE);
 	}
+    result = nextfree;
+
+    if(n == 0){
+        nextfree=ROUNDUP((char *)nextfree, PGSIZE);
+        if(((uintptr_t)nextfree - (uintptr_t)KERNBASE)  > (npages * PGSIZE)){
+        	panic("boot_alloc: 104 Ran Out Of Available Memory\n");
+        }
+    }
+    if(n > 0){
+        nextfree=ROUNDUP((char *)nextfree + n,PGSIZE);
+        if(((uintptr_t)nextfree - (uintptr_t)KERNBASE)  > (npages * PGSIZE)){
+        	panic("boot_alloc: 110 Ran Out Of Available Memory\n");
+        }
+    }
+    cprintf("NEXT FREE %s %x\n",nextfree,nextfree);
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
@@ -103,7 +118,7 @@ boot_alloc(uint32_t n)
 	//
 	// LAB 2: Your code here.
 
-	return NULL;
+	return result;
 }
 
 // Set up a two-level page table:
@@ -125,13 +140,12 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+//	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
 	memset(kern_pgdir, 0, PGSIZE);
-
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
 	// a virtual page table at virtual address UVPT.
@@ -148,7 +162,8 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-
+    pages = boot_alloc(sizeof(struct PageInfo) * npages);
+    memset(pages, 0, sizeof(struct PageInfo) * npages);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
