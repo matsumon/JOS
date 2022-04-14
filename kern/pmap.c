@@ -100,17 +100,17 @@ boot_alloc(uint32_t n)
 
     if(n == 0){
         nextfree=ROUNDUP((char *)nextfree, PGSIZE);
-        if(((uintptr_t)nextfree - (uintptr_t)KERNBASE)  > (npages * PGSIZE)){
+        if(PADDR(nextfree) > (npages * PGSIZE)){
         	panic("boot_alloc: 104 Ran Out Of Available Memory\n");
         }
     }
     if(n > 0){
         nextfree=ROUNDUP((char *)nextfree + n,PGSIZE);
-        if(((uintptr_t)nextfree - (uintptr_t)KERNBASE)  > (npages * PGSIZE)){
+        if(PADDR(nextfree) > (npages * PGSIZE)){
         	panic("boot_alloc: 110 Ran Out Of Available Memory\n");
         }
     }
-    cprintf("NEXT FREE %s %x\n",nextfree,nextfree);
+    // cprintf("NEXT FREE %x\n",nextfree,nextfree);
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
@@ -267,11 +267,31 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	for (i = 0; i < npages; i++) {
+
+	pages[0].pp_ref = 1;
+	cprintf("npages_basemem %x\nIOPHYSMEM %x\nEXTPHYSMEM %x\n",npages_basemem, IOPHYSMEM,EXTPHYSMEM);
+	for (i = 1; i < npages_basemem; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
+
+	int io_hole_start = IOPHYSMEM/PGSIZE;
+	int io_hole_end = EXTPHYSMEM/PGSIZE;
+	uint32_t * free_address = (uint32_t *) boot_alloc(0);
+	for(i = io_hole_start; i < io_hole_end; i++){
+		pages[i].pp_ref = 1;
+	}
+	for(i = io_hole_end; i < npages; i++){
+		if((uint32_t)i < PADDR(free_address)/PGSIZE){
+			pages[i].pp_ref = 1;
+		} else{
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
+	}
+
 }
 
 //
