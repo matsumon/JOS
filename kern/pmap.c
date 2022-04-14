@@ -269,7 +269,7 @@ page_init(void)
 	size_t i;
 
 	pages[0].pp_ref = 1;
-	cprintf("npages_basemem %x\nIOPHYSMEM %x\nEXTPHYSMEM %x\n",npages_basemem, IOPHYSMEM,EXTPHYSMEM);
+	cprintf("npages_basemem %p\nIOPHYSMEM %p\nEXTPHYSMEM %p\n",npages_basemem, IOPHYSMEM,EXTPHYSMEM);
 	for (i = 1; i < npages_basemem; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
