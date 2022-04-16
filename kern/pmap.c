@@ -309,8 +309,17 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
+	struct PageInfo * free_page = page_free_list;
+	if(free_page == NULL){
+		cprintf("No More Pages to Allocate. page_alloc function");
+		return NULL;
+	}
+	page_free_list = free_page->pp_link;
+	if(alloc_flags == ALLOC_ZERO){
+		memset(page2kva(free_page), '\0', 4096);
+	}
 	// Fill this function in
-	return 0;
+	return free_page;
 }
 
 //
@@ -320,6 +329,12 @@ page_alloc(int alloc_flags)
 void
 page_free(struct PageInfo *pp)
 {
+	if(pp->pp_ref != 0){
+		panic("in page_free in pmap.c the pp_ref of %p is not zero", pp);
+		return;
+	}
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
