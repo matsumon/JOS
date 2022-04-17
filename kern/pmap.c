@@ -377,6 +377,22 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
+	pde_t pde = pgdir[PDX(va)];
+	if(pde & PTE_P){
+		pde_t * page_table = (pde_t *) KADDR(PTE_ADDR(pde));
+		return &page_table[PTX(va)];
+	} else if (create == true) {
+		struct PageInfo * pp_page_table = page_alloc(ALLOC_ZERO);
+		if(pp_page_table == NULL){
+			return NULL;
+		} else{
+			pp_page_table->pp_ref++;
+			pgdir[PDX(va)] = page2pa(pp_page_table) | PTE_P | PTE_U | PTE_W;
+			pde_t * page_table = (pde_t *) KADDR(PTE_ADDR(pde));
+			return &page_table[PTX(va)];
+		}
+	}
+
 	return NULL;
 }
 
