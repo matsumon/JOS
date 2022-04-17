@@ -450,6 +450,16 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
+	pte_t * page_table_entry = pgdir_walk(pgdir, (uint32_t *) va, 1);
+	if(page_table_entry == NULL){
+		return -E_NO_MEM;
+	}
+	// Just murder the page if one already exists, this might not work if other virtual addresses are using it.
+	if(*page_table_entry & PTE_P){
+		page_remove(pgdir, (uint32_t *)va);
+	}
+	*page_table_entry = page2pa(pp) | perm|PTE_P;
+	pp->pp_ref++;
 	// Fill this function in
 	return 0;
 }
