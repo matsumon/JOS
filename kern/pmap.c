@@ -311,7 +311,7 @@ page_alloc(int alloc_flags)
 {
 	struct PageInfo * free_page = page_free_list;
 	if(free_page == NULL){
-		cprintf("No More Pages to Allocate. page_alloc function");
+		cprintf("No More Pages to Allocate. page_alloc function\n");
 		return NULL;
 	}
 	page_free_list = free_page->pp_link;
@@ -330,7 +330,7 @@ void
 page_free(struct PageInfo *pp)
 {
 	if(pp->pp_ref != 0){
-		panic("in page_free in pmap.c the pp_ref of %p is not zero", pp);
+		panic("in page_free in pmap.c the pp_ref of %p is not zero\n", pp);
 		return;
 	}
 	pp->pp_link = page_free_list;
@@ -388,7 +388,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		} else{
 			pp_page_table->pp_ref++;
 			pgdir[PDX(va)] = page2pa(pp_page_table) | PTE_P | PTE_U | PTE_W;
-			pde_t * page_table = (pde_t *) KADDR(PTE_ADDR(pde));
+			pde_t * page_table = (pde_t *) KADDR(PTE_ADDR(pgdir[PDX(va)]));
 			return &page_table[PTX(va)];
 		}
 	}
@@ -411,6 +411,15 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	int i;
+	for(i = 0; i < size/PGSIZE; i++)
+	{
+		pte_t * p_pte = (pte_t *) pgdir_walk(pgdir,(uintptr_t *)(va+i),1);
+		if(p_pte == NULL){
+			cprintf("boot_map_region pmap.c issue with pgdir_walk returning null\n");
+		}
+		*p_pte = PTE_ADDR(pa+i) | PTE_P | perm;
+	}
 }
 
 //
@@ -460,7 +469,13 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	pte_t * table_entry = pgdir_walk(pgdir, va, 0);
+	if(table_entry == NULL){
+		return NULL;
+	}
+	*pte_store = table_entry;
+	cprintf("HERE %p %p\n",**pte_store,pa2page(PTE_ADDR(*table_entry)));
+	return pa2page(PTE_ADDR(*table_entry));
 }
 
 //
