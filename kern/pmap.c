@@ -269,7 +269,7 @@ page_init(void)
 	size_t i;
 
 	pages[0].pp_ref = 1;
-	cprintf("npages_basemem %p\nIOPHYSMEM %p\nEXTPHYSMEM %p\n",npages_basemem, IOPHYSMEM,EXTPHYSMEM);
+	// cprintf("npages_basemem %p\nIOPHYSMEM %p\nEXTPHYSMEM %p\n",npages_basemem, IOPHYSMEM,EXTPHYSMEM);
 	for (i = 1; i < npages_basemem; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
@@ -311,10 +311,11 @@ page_alloc(int alloc_flags)
 {
 	struct PageInfo * free_page = page_free_list;
 	if(free_page == NULL){
-		cprintf("No More Pages to Allocate. page_alloc function\n");
+		// cprintf("No More Pages to Allocate. page_alloc function\n");
 		return NULL;
 	}
 	page_free_list = free_page->pp_link;
+	free_page->pp_link = NULL;
 	if(alloc_flags == ALLOC_ZERO){
 		memset(page2kva(free_page), '\0', 4096);
 	}
@@ -389,6 +390,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 			pp_page_table->pp_ref++;
 			pgdir[PDX(va)] = page2pa(pp_page_table) | PTE_P | PTE_U | PTE_W;
 			pde_t * page_table = (pde_t *) KADDR(PTE_ADDR(pgdir[PDX(va)]));
+			// cprintf("PAGE DIRECTORY: %p TABLE DIRECTORY %p \n",pgdir[PDX(va)], &page_table[PTX(va)]);
 			return &page_table[PTX(va)];
 		}
 	}
@@ -450,16 +452,17 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
+	// cprintf("PAGE DIR %p",pgdir[PDX(va)]);
 	pte_t * page_table_entry = pgdir_walk(pgdir, (uint32_t *) va, 1);
 	if(page_table_entry == NULL){
 		return -E_NO_MEM;
 	}
 	// Just murder the page if one already exists, this might not work if other virtual addresses are using it.
+	pp->pp_ref++;
 	if(*page_table_entry & PTE_P){
 		page_remove(pgdir, (uint32_t *)va);
 	}
 	*page_table_entry = page2pa(pp) | perm|PTE_P;
-	pp->pp_ref++;
 	// Fill this function in
 	return 0;
 }
@@ -480,11 +483,12 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
 	pte_t * table_entry = pgdir_walk(pgdir, va, 0);
+	// if(table_entry == NULL || (((uint32_t)table_entry | PTE_P) != (uint32_t)table_entry)){
 	if(table_entry == NULL){
 		return NULL;
 	}
 	*pte_store = table_entry;
-	cprintf("HERE %p %p\n",**pte_store,pa2page(PTE_ADDR(*table_entry)));
+	// cprintf("HERE %p %p\n",**pte_store,pa2page(PTE_ADDR(*table_entry)));
 	return pa2page(PTE_ADDR(*table_entry));
 }
 
