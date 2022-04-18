@@ -187,7 +187,10 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir,0xef000000, 400000, (uint32_t )PADDR((uint32_t *)0xef000000), PTE_U | PTE_P);
+    cprintf("UPAGES %p\n",UPAGES);
+	int a = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
+	boot_map_region(kern_pgdir,UPAGES, a,PADDR(pages), PTE_U | PTE_P);
+	boot_map_region(kern_pgdir,(uint32_t)page2kva(pages), a,PADDR(pages), PTE_W | PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -199,7 +202,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir,0xefc00000, 400000, (uint32_t )PADDR((uint32_t *)0xefc00000), PTE_W | PTE_P);
+	 boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE, KSTKSIZE,PADDR(bootstack), PTE_W | PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -208,7 +211,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
-	boot_map_region(kern_pgdir,0xf0000000, 10000000, (uint32_t )PADDR((uint32_t *)0xf0000000), PTE_W | PTE_P);
+	 boot_map_region(kern_pgdir,KERNBASE,0xffffffff -KERNBASE, 0, PTE_W | PTE_P);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -416,11 +419,12 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	int i;
 	for(i = 0; i < size/PGSIZE; i++)
 	{
-		pte_t * p_pte = (pte_t *) pgdir_walk(pgdir,(uintptr_t *)(va+i),1);
+		pte_t * p_pte = (pte_t *) pgdir_walk(pgdir,(uintptr_t *)(va+i*4096),1);
 		if(p_pte == NULL){
 			cprintf("boot_map_region pmap.c issue with pgdir_walk returning null\n");
 		}
-		*p_pte = PTE_ADDR(pa+i) | PTE_P | perm;
+		*p_pte = PTE_ADDR(pa+i*4096) | PTE_P | perm;
+//        cprintf("ADDRESS %p\n",*p_pte);
 	}
 }
 
