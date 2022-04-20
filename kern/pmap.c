@@ -187,7 +187,10 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-    cprintf("UPAGES %p\n",UPAGES);
+    // cprintf("UPAGES %p\n",UPAGES);
+    cprintf("Overhead size %p\n",1024*1024*sizeof(struct PageInfo));
+    cprintf("Npages %p\n",npages);
+    cprintf("Size of Page Info %p\n",sizeof(struct PageInfo));
 	int a = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
 	boot_map_region(kern_pgdir,UPAGES, a,PADDR(pages), PTE_U | PTE_P);
 	boot_map_region(kern_pgdir,(uint32_t)page2kva(pages), a,PADDR(pages), PTE_W | PTE_P);
@@ -234,7 +237,15 @@ mem_init(void)
 	lcr0(cr0);
 
 	// Some more checks, only possible after kern_pgdir is installed.
-	check_page_installed_pgdir();
+	 check_page_installed_pgdir();
+	// cprintf("1022 %p\n", kern_pgdir[ROUNDUP(1023*sizeof(struct PageInfo), PGSIZE)]);
+	// pte_t *pte_store;
+	// struct PageInfo * orange = page_lookup(kern_pgdir, (uint32_t *)0xffc00000, &pte_store);
+	// cprintf("Orange %p \t %p\n", orange, *pte_store);
+	// cprintf("1022 %p\n", page2kva(&pages[1023]));
+    // cprintf("Address %p\n",page2kva((struct PageInfo *)kern_pgdir[2*4096]));
+    cprintf("Address %p\n",PTE_ADDR(&kern_pgdir[2]));
+
 }
 
 // --------------------------------------------------------------
@@ -417,6 +428,12 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 {
 	// Fill this function in
 	int i;
+    double check_virtual = size + (uint32_t)va;
+    double check_physical = size + (uint32_t)pa;
+    double max = 4294967295;
+    if(check_virtual > max || check_physical > max){
+        panic("In boot_map_region the size + va or pa is too big for 32 bit number");
+    }
 	for(i = 0; i < size/PGSIZE; i++)
 	{
 		pte_t * p_pte = (pte_t *) pgdir_walk(pgdir,(uintptr_t *)(va+i*4096),1);
