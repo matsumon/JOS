@@ -194,7 +194,12 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	// Ignore stuff after the colon.
 	info->eip_fn_namelen = strfind(info->eip_fn_name, ':') - info->eip_fn_name;
 
-
+	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+    if(lline <= rline){
+        info->eip_line = stabs[lline].n_desc;
+    }else{
+        return -1;
+    }
 	// Search within [lline, rline] for the line number stab.
 	// If found, set info->eip_line to the correct line number.
     // e.g., info->eip_line = stabs[lline].n_desc
