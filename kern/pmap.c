@@ -188,9 +188,9 @@ mem_init(void)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
     // cprintf("UPAGES %p\n",UPAGES);
-    cprintf("Overhead size %p\n",1024*1024*sizeof(struct PageInfo));
-    cprintf("Npages %p\n",npages);
-    cprintf("Size of Page Info %p\n",sizeof(struct PageInfo));
+    // cprintf("Overhead size %p\n",1024*1024*sizeof(struct PageInfo));
+    // cprintf("Npages %p\n",npages);
+    // cprintf("Size of Page Info %p\n",sizeof(struct PageInfo));
 	int a = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
 	boot_map_region(kern_pgdir,UPAGES, a,PADDR(pages), PTE_U | PTE_P);
 	boot_map_region(kern_pgdir,(uint32_t)page2kva(pages), a,PADDR(pages), PTE_W | PTE_P);
@@ -244,7 +244,7 @@ mem_init(void)
 	// cprintf("Orange %p \t %p\n", orange, *pte_store);
 	// cprintf("1022 %p\n", page2kva(&pages[1023]));
     // cprintf("Address %p\n",page2kva((struct PageInfo *)kern_pgdir[2*4096]));
-    cprintf("Address %p\n",PTE_ADDR(&kern_pgdir[2]));
+    // cprintf("Address %p\n",PTE_ADDR(&kern_pgdir[2]));
 
 }
 

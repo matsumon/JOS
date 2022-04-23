@@ -12,16 +12,16 @@ it needed to treat the address given by the pointer as physical or virtual.
 
 Questions 2.
 
-1023         | ffc0_0000 | Page table for top 4MB of phys memory
+1023         | ffc0_0000 | Page table for top 4MB of physical memory
 992-1022     | f800_0000 | Remapped physical memory
 961-991      | f040_0000 | Remapped physical memory
-960          | f000_0000 | Points to KSTACKTOP, KERNBASE
+960          | f000_0000 | Points to KSTACKTOP, KERNBASE. Setting up the stack allocated using boot_map_region
 959          | efc0_0000 | Points to MMIOLIM - Memory Mapped IO
-957          | ef40_0000 | Points to read-only virtual page table, UVPT
-956          | ef00_0000 | Points to read-only copies of the Page structures, UPAGES
-2            | 0080_0000 | Points to UTEXT, where user programs generally begin
-1            | 0040_0000 | Points to UTEMP, used for temporary page mappings
-0            | 0000_0000 | Points to real-mode IDT and BIOS structures
+957          | ef40_0000 | Points to read-only virtual page table, UVPT. 
+956          | ef00_0000 | Points to read-only copies of the Page structures, UPAGES. Allocated using boot_map_region
+2            | 0080_0000 | Doesn't exist
+1            | 0040_0000 | Doesn't exist
+0            | 0000_0000 | Doesn't exist
 
 Questions 3.
 We have placed the kernel and user environment in the same address space. 
