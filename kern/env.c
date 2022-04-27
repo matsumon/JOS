@@ -185,6 +185,7 @@ env_setup_vm(struct Env *e)
 
 	// LAB 3: Your code here.
     e->env_pgdir = page2kva(p);
+    p->pp_ref++;
     for(i = PDX(UTOP); i < NPDENTRIES; ++i){
         e->env_pgdir[i] = kern_pgdir[i];
     }
@@ -275,6 +276,8 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+    int32_t rounded_va = ROUNDDOWN((int32_t)va, PGSIZE);
+    int32_t rounded_len = ROUNDUP(len, PGSIZE);
 }
 
 //
