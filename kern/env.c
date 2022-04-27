@@ -167,7 +167,6 @@ env_setup_vm(struct Env *e)
 	// Allocate a page for the page directory
 	if (!(p = page_alloc(ALLOC_ZERO)))
 		return -E_NO_MEM;
-
 	// Now, set e->env_pgdir and initialize the page directory.
 	//
 	// Hint:
@@ -185,7 +184,10 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
-
+    e->env_pgdir = page2kva(p);
+    for(i = PDX(UTOP); i < NPDENTRIES; ++i){
+        e->env_pgdir[i] = kern_pgdir[i];
+    }
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
