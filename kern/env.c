@@ -278,6 +278,11 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   (Watch out for corner-cases!)
     int32_t rounded_va = ROUNDDOWN((int32_t)va, PGSIZE);
     int32_t rounded_len = ROUNDUP(len, PGSIZE);
+    int i;
+    for(i = rounded_va; i <= rounded_len + rounded_va ; i= i+PGSIZE){
+
+    }
+
 }
 
 //
