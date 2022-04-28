@@ -280,6 +280,14 @@ region_alloc(struct Env *e, void *va, size_t len)
     int32_t rounded_len = ROUNDUP(len, PGSIZE);
     int i;
     for(i = rounded_va; i <= rounded_len + rounded_va ; i= i+PGSIZE){
+		struct PageInfo * new_page = page_alloc(ALLOC_ZERO);
+		if(new_page == NULL){
+			panic("PANIC env.c region_alloc line 285 new_page null");
+		}
+		int insert = page_insert(e->env_pgdir, new_page, page2kva(new_page), PTE_U | PTE_W);
+		if(insert == -E_NO_MEM){
+			panic("PANIC env.c region_alloc line 289 can't insert page");
+		}
 
     }
 
