@@ -347,7 +347,9 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
-
+	uint32_t prev_cr3 = rcr3();
+	lcr3(PADDR(e->env_pgdir));
+	
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
