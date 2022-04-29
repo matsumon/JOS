@@ -357,13 +357,16 @@ load_icode(struct Env *e, uint8_t *binary)
 		panic("icode line 356 env.c Elf Header Table Size has no entries");
 	}
 	struct Proghdr * i;
-	for(i = program_header; i <= program_header_end; i = i+elf->e_phentsize){
+	for(i = program_header; i <= program_header_end; i += elf->e_phentsize){
 		if(i->p_type == ELF_PROG_LOAD){
 			region_alloc(e, (uint32_t *)i->p_va, i->p_memsz);
+            memset((uint32_t*)i->p_va ,0,i->p_memsz);
+            memcpy(
+                    (uint32_t*)i->p_va,
+                    (uint32_t *) ((uint32_t) binary + (uint32_t) i->p_offset), i->p_filesz);
 		}
 	}
-	// e->env_tf.tf_eip=elf_.e_entry;
-
+	e->env_tf.tf_eip=elf->e_entry;
 
 	lcr3(prev_cr3);
 	// Now map one page for the program's initial stack
