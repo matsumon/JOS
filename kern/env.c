@@ -367,7 +367,7 @@ load_icode(struct Env *e, uint8_t *binary)
 		}
 	}
 	e->env_tf.tf_eip=elf->e_entry;
-
+    region_alloc(e,(void *) (USTACKTOP - PGSIZE), PGSIZE);
 	lcr3(prev_cr3);
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
@@ -386,6 +386,14 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+    struct Env *newenv_store;
+    int allocate_success = env_alloc(&newenv_store, 0);
+    if(allocate_success != 0){
+        panic("env_create line 392 couldn't allocate memory");
+    }
+    (newenv_store)->env_type = type;
+    load_icode(newenv_store,binary);
+
 }
 
 //
