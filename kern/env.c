@@ -117,7 +117,7 @@ env_init(void)
 	// Set up envs array
 	// LAB 3: Your code here.
     int i;
-    for(i = NENV -1; i < 0; i--){
+    for(i = NENV -1; i >= 0; i--){
         envs[i].env_id = 0;
         envs[i].env_status = ENV_FREE;
         envs[i].env_link = env_free_list;
@@ -280,7 +280,7 @@ region_alloc(struct Env *e, void *va, size_t len)
     int32_t rounded_len = ROUNDUP(len, PGSIZE);
     int i;
     for(i = rounded_va; i <= rounded_len + rounded_va ; i= i+PGSIZE){
-		struct PageInfo * new_page = page_alloc(ALLOC_ZERO);
+		struct PageInfo * new_page = page_alloc(0);
 		if(new_page == NULL){
 			panic("PANIC env.c region_alloc line 285 new_page null");
 		}
@@ -389,7 +389,7 @@ env_create(uint8_t *binary, enum EnvType type)
     struct Env *newenv_store;
     int allocate_success = env_alloc(&newenv_store, 0);
     if(allocate_success != 0){
-        panic("env_create line 392 couldn't allocate memory");
+       panic("env_create line 392 couldn't allocate memory %d %d %d",allocate_success,-E_NO_FREE_ENV,-E_NO_MEM);
     }
     (newenv_store)->env_type = type;
     load_icode(newenv_store,binary);
