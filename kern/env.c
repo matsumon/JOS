@@ -349,7 +349,23 @@ load_icode(struct Env *e, uint8_t *binary)
 	// LAB 3: Your code here.
 	uint32_t prev_cr3 = rcr3();
 	lcr3(PADDR(e->env_pgdir));
-	
+	struct Elf *elf = (struct Elf *) binary;
+	uint32_t program_header_offset = elf->e_phoff;
+	struct Proghdr * program_header = (struct Proghdr *)(binary + program_header_offset);
+	struct Proghdr *  program_header_end = (struct Proghdr *)(binary + program_header_offset + elf->e_phnum);
+	if(elf->e_phnum == 0){
+		panic("icode line 356 env.c Elf Header Table Size has no entries");
+	}
+	struct Proghdr * i;
+	for(i = program_header; i <= program_header_end; i = i+elf->e_phentsize){
+		if(i->p_type == ELF_PROG_LOAD){
+			region_alloc(e, (uint32_t *)i->p_va, i->p_memsz);
+		}
+	}
+	// e->env_tf.tf_eip=elf_.e_entry;
+
+
+	lcr3(prev_cr3);
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
