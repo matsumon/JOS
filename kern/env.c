@@ -277,14 +277,14 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
     int32_t rounded_va = ROUNDDOWN((int32_t)va, PGSIZE);
-    int32_t rounded_len = ROUNDUP(len, PGSIZE);
+    int32_t rounded_len = ROUNDUP(len + rounded_va, PGSIZE);
     int i;
-    for(i = rounded_va; i <= rounded_len + rounded_va ; i= i+PGSIZE){
+    for(i = rounded_va; i <= rounded_len; i= i+PGSIZE){
 		struct PageInfo * new_page = page_alloc(0);
 		if(new_page == NULL){
 			panic("PANIC env.c region_alloc line 285 new_page null");
 		}
-		int insert = page_insert(e->env_pgdir, new_page, page2kva(new_page), PTE_U | PTE_W);
+		int insert = page_insert(e->env_pgdir, new_page, (void *)i, PTE_U | PTE_W);
 		if(insert == -E_NO_MEM){
 			panic("PANIC env.c region_alloc line 289 can't insert page");
 		}
@@ -352,23 +352,33 @@ load_icode(struct Env *e, uint8_t *binary)
 	struct Elf *elf = (struct Elf *) binary;
 	uint32_t program_header_offset = elf->e_phoff;
 	struct Proghdr * program_header = (struct Proghdr *)(binary + program_header_offset);
-	struct Proghdr *  program_header_end = (struct Proghdr *)(binary + program_header_offset + elf->e_phnum);
+	struct Proghdr *  program_header_end = (struct Proghdr *)(program_header + elf->e_phnum);
 	if(elf->e_phnum == 0){
 		panic("icode line 356 env.c Elf Header Table Size has no entries");
 	}
 	struct Proghdr * i;
-	for(i = program_header; i <= program_header_end; i += elf->e_phentsize){
+	for(i = program_header; i < program_header_end; i++){
 		if(i->p_type == ELF_PROG_LOAD){
+			if(i->p_filesz > i->p_memsz){
+				panic("load_icode issue with elf header line 363");
+			}
 			region_alloc(e, (uint32_t *)i->p_va, i->p_memsz);
-            memset((uint32_t*)i->p_va ,0,i->p_memsz);
+            memset(
+				(void *)i->p_va,
+				0,
+				i->p_memsz
+			);
+
             memcpy(
-                    (uint32_t*)i->p_va,
-                    (uint32_t *) ((uint32_t) binary + (uint32_t) i->p_offset), i->p_filesz);
+                    (void*)i->p_va,
+                    (void *) (binary + i->p_offset),
+					i->p_filesz
+				);
 		}
 	}
 	e->env_tf.tf_eip=elf->e_entry;
     region_alloc(e,(void *) (USTACKTOP - PGSIZE), PGSIZE);
-	lcr3(prev_cr3);
+	lcr3(PADDR(kern_pgdir));
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
@@ -517,8 +527,7 @@ env_run(struct Env *e)
     curenv->env_status=ENV_RUNNING;
     curenv->env_runs++;
     lcr3(PADDR(curenv->env_pgdir));
-    struct Trapframe env_tf = curenv->env_tf;
-    env_pop_tf(&env_tf);
+    env_pop_tf(&curenv->env_tf);
 //	panic("env_run not yet implemented");
 }
 
