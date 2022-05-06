@@ -23,7 +23,7 @@ sys_cputs(const char *s, size_t len)
 	// LAB 3: Your code here.
 
 	// Print the string supplied by the user.
-	cprintf("HERE");
+	// cprintf("HERE");
 	cprintf("%.*s", len, s);
 }
 
