@@ -279,7 +279,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Handle kernel-mode page faults.
 	// cprintf("HERE IN PAGE FAULT %x %x",tf->tf_cs <<29,(tf->tf_cs));
-	if ((tf->tf_cs <<29) == 0) {
+	if ((tf->tf_cs & 0x3) == 0) {
 		panic("kernel level page fault in page fault handler in trap.c");
 	}
 	// LAB 3: Your code here.
