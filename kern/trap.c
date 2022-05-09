@@ -217,11 +217,12 @@ trap_dispatch(struct Trapframe *tf)
 			return;
 		}
 		default:
-		{			
+		{
 			// Unexpected trap: The user process or the kernel has a bug.
 			print_trapframe(tf);
-			if (tf->tf_cs == GD_KT)
+			if (tf->tf_cs == GD_KT){
 				panic("unhandled trap in kernel");
+            }
 			else {
 				env_destroy(curenv);
 				return;

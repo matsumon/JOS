@@ -599,8 +599,8 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 		pte_t * page_table_entry = NULL;
 		page_table_entry = pgdir_walk(env->env_pgdir, (void *)i, 0);
 		 if (
-		 		 page_table_entry == NULL || 
-				 start_address >= ULIM || 
+		 		 page_table_entry == NULL ||
+				 start_address >= ULIM ||
 			 	!(*page_table_entry & (PTE_P | perm))
 			 ) {
 			user_mem_check_addr = i;

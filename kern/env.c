@@ -279,7 +279,7 @@ region_alloc(struct Env *e, void *va, size_t len)
     int32_t rounded_va = ROUNDDOWN((int32_t)va, PGSIZE);
     int32_t rounded_len = ROUNDUP(len + rounded_va, PGSIZE);
     int i;
-    for(i = rounded_va; i <= rounded_len; i= i+PGSIZE){
+    for(i = rounded_va; i < rounded_len; i= i+PGSIZE){
 		struct PageInfo * new_page = page_alloc(0);
 		if(new_page == NULL){
 			panic("PANIC env.c region_alloc line 285 new_page null");
