@@ -99,6 +99,21 @@ boot_alloc(uint32_t n)
 		extern char end[];
 		nextfree = ROUNDUP((char *) end, PGSIZE);
 	}
+    result = nextfree;
+
+    if(n == 0){
+        nextfree=ROUNDUP((char *)nextfree, PGSIZE);
+        if(PADDR(nextfree) > (npages * PGSIZE)){
+        	panic("boot_alloc: 104 Ran Out Of Available Memory\n");
+        }
+    }
+    if(n > 0){
+        nextfree=ROUNDUP((char *)nextfree + n,PGSIZE);
+        if(PADDR(nextfree) > (npages * PGSIZE)){
+        	panic("boot_alloc: 110 Ran Out Of Available Memory\n");
+        }
+    }
+    // cprintf("NEXT FREE %x\n",nextfree,nextfree);
 
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
@@ -106,7 +121,7 @@ boot_alloc(uint32_t n)
 	//
 	// LAB 2: Your code here.
 
-	return NULL;
+	return result;
 }
 
 // Set up a two-level page table:
@@ -128,13 +143,12 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
+//	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
 	memset(kern_pgdir, 0, PGSIZE);
-
 	//////////////////////////////////////////////////////////////////////
 	// Recursively insert PD in itself as a page table, to form
 	// a virtual page table at virtual address UVPT.
@@ -151,12 +165,14 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-
+    pages = boot_alloc(sizeof(struct PageInfo) * npages);
+    memset(pages, 0, sizeof(struct PageInfo) * npages);
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
-
+    envs = boot_alloc(sizeof(struct Env) * NENV);
+    memset(envs, 0, sizeof(struct Env) * NENV);
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -179,7 +195,13 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-
+    // cprintf("UPAGES %p\n",UPAGES);
+    // cprintf("Overhead size %p\n",1024*1024*sizeof(struct PageInfo));
+    // cprintf("Npages %p\n",npages);
+    // cprintf("Size of Page Info %p\n",sizeof(struct PageInfo));
+	int a = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
+	boot_map_region(kern_pgdir,UPAGES, a,PADDR(pages), PTE_U | PTE_P);
+	boot_map_region(kern_pgdir,(uint32_t)page2kva(pages), a,PADDR(pages), PTE_W | PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
 	// (ie. perm = PTE_U | PTE_P).
@@ -187,7 +209,7 @@ mem_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-
+    boot_map_region(kern_pgdir,UENVS,PTSIZE,PADDR(envs),PTE_U | PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -199,7 +221,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
-
+	 boot_map_region(kern_pgdir,KSTACKTOP-KSTKSIZE, KSTKSIZE,PADDR(bootstack), PTE_W | PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -211,6 +233,9 @@ mem_init(void)
 
 	// Initialize the SMP-related parts of the memory map
 	mem_init_mp();
+
+
+	boot_map_region(kern_pgdir,KERNBASE,0xffffffff -KERNBASE, 0, PTE_W | PTE_P);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -234,7 +259,15 @@ mem_init(void)
 	lcr0(cr0);
 
 	// Some more checks, only possible after kern_pgdir is installed.
-	check_page_installed_pgdir();
+	 check_page_installed_pgdir();
+	// cprintf("1022 %p\n", kern_pgdir[ROUNDUP(1023*sizeof(struct PageInfo), PGSIZE)]);
+	// pte_t *pte_store;
+	// struct PageInfo * orange = page_lookup(kern_pgdir, (uint32_t *)0xffc00000, &pte_store);
+	// cprintf("Orange %p \t %p\n", orange, *pte_store);
+	// cprintf("1022 %p\n", page2kva(&pages[1023]));
+    // cprintf("Address %p\n",page2kva((struct PageInfo *)kern_pgdir[2*4096]));
+    // cprintf("Address %p\n",PTE_ADDR(&kern_pgdir[2]));
+
 }
 
 // Modify mappings in kern_pgdir to support SMP
@@ -299,11 +332,31 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	for (i = 0; i < npages; i++) {
+
+	pages[0].pp_ref = 1;
+	// cprintf("npages_basemem %p\nIOPHYSMEM %p\nEXTPHYSMEM %p\n",npages_basemem, IOPHYSMEM,EXTPHYSMEM);
+	for (i = 1; i < npages_basemem; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
+
+	int io_hole_start = IOPHYSMEM/PGSIZE;
+	int io_hole_end = EXTPHYSMEM/PGSIZE;
+	uint32_t * free_address = (uint32_t *) boot_alloc(0);
+	for(i = io_hole_start; i < io_hole_end; i++){
+		pages[i].pp_ref = 1;
+	}
+	for(i = io_hole_end; i < npages; i++){
+		if((uint32_t)i < PADDR(free_address)/PGSIZE){
+			pages[i].pp_ref = 1;
+		} else{
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
+	}
+
 }
 
 //
@@ -321,8 +374,18 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
+	struct PageInfo * free_page = page_free_list;
+	if(free_page == NULL){
+		// cprintf("No More Pages to Allocate. page_alloc function\n");
+		return NULL;
+	}
+	page_free_list = free_page->pp_link;
+	free_page->pp_link = NULL;
+	if(alloc_flags == ALLOC_ZERO){
+		memset(page2kva(free_page), '\0', 4096);
+	}
 	// Fill this function in
-	return 0;
+	return free_page;
 }
 
 //
@@ -332,6 +395,12 @@ page_alloc(int alloc_flags)
 void
 page_free(struct PageInfo *pp)
 {
+	if(pp->pp_ref != 0){
+		panic("in page_free in pmap.c the pp_ref of %p is not zero\n", pp);
+		return;
+	}
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
@@ -374,6 +443,23 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
+	pde_t pde = pgdir[PDX(va)];
+	if(pde & PTE_P){
+		pde_t * page_table = (pde_t *) KADDR(PTE_ADDR(pde));
+		return &page_table[PTX(va)];
+	} else if (create == true) {
+		struct PageInfo * pp_page_table = page_alloc(ALLOC_ZERO);
+		if(pp_page_table == NULL){
+			return NULL;
+		} else{
+			pp_page_table->pp_ref++;
+			pgdir[PDX(va)] = page2pa(pp_page_table) | PTE_P | PTE_U | PTE_W;
+			pde_t * page_table = (pde_t *) KADDR(PTE_ADDR(pgdir[PDX(va)]));
+			// cprintf("PAGE DIRECTORY: %p TABLE DIRECTORY %p \n",pgdir[PDX(va)], &page_table[PTX(va)]);
+			return &page_table[PTX(va)];
+		}
+	}
+
 	return NULL;
 }
 
@@ -392,6 +478,22 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	int i;
+    double check_virtual = size + (uint32_t)va;
+    double check_physical = size + (uint32_t)pa;
+    double max = 4294967295;
+    if(check_virtual > max || check_physical > max){
+        panic("In boot_map_region the size + va or pa is too big for 32 bit number");
+    }
+	for(i = 0; i < size/PGSIZE; i++)
+	{
+		pte_t * p_pte = (pte_t *) pgdir_walk(pgdir,(uintptr_t *)(va+i*4096),1);
+		if(p_pte == NULL){
+			cprintf("boot_map_region pmap.c issue with pgdir_walk returning null\n");
+		}
+		*p_pte = PTE_ADDR(pa+i*4096) | PTE_P | perm;
+//        cprintf("ADDRESS %p\n",*p_pte);
+	}
 }
 
 //
@@ -422,6 +524,17 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
+	// cprintf("PAGE DIR %p",pgdir[PDX(va)]);
+	pte_t * page_table_entry = pgdir_walk(pgdir, (uint32_t *) va, 1);
+	if(page_table_entry == NULL){
+		return -E_NO_MEM;
+	}
+	// Just murder the page if one already exists, this might not work if other virtual addresses are using it.
+	pp->pp_ref++;
+	if(*page_table_entry & PTE_P){
+		page_remove(pgdir, (uint32_t *)va);
+	}
+	*page_table_entry = page2pa(pp) | perm|PTE_P;
 	// Fill this function in
 	return 0;
 }
@@ -441,7 +554,14 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	pte_t * table_entry = pgdir_walk(pgdir, va, 0);
+	// if(table_entry == NULL || (((uint32_t)table_entry | PTE_P) != (uint32_t)table_entry)){
+	if(table_entry == NULL){
+		return NULL;
+	}
+	*pte_store = table_entry;
+	// cprintf("HERE %p %p\n",**pte_store,pa2page(PTE_ADDR(*table_entry)));
+	return pa2page(PTE_ADDR(*table_entry));
 }
 
 //
@@ -463,6 +583,14 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t * pte_store;
+	struct PageInfo * page_to_remove = page_lookup(pgdir, (uint32_t *)va, &pte_store);
+	if(page_to_remove == NULL){
+		return;
+	}
+	*pte_store = 0;
+	page_decref(page_to_remove);
+	tlb_invalidate(pgdir,va);
 }
 
 //
@@ -536,7 +664,24 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
-
+	uint32_t start_address = ROUNDDOWN((uint32_t)va, PGSIZE);
+	uint32_t end_address = ROUNDUP((uint32_t)va + (uint32_t)len,PGSIZE);
+	uint32_t i;
+	for(i = start_address; i < end_address; i+=PGSIZE){
+		pte_t * page_table_entry = NULL;
+		page_table_entry = pgdir_walk(env->env_pgdir, (void *)i, 0);
+		 if (
+		 		 page_table_entry == NULL ||
+				 start_address >= ULIM ||
+			 	!(*page_table_entry & (PTE_P | perm))
+			 ) {
+			user_mem_check_addr = i;
+			if(i < (uint32_t)va){
+				user_mem_check_addr = (uint32_t) va;
+			}
+			return -E_FAULT;
+		}
+	}
 	return 0;
 }
 

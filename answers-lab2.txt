@@ -1,0 +1,67 @@
+
+Questions 1.
+Assuming that the following JOS kernel code is correct, what type should variable x have, uintptr_t or physaddr_t?
+mystery_t x;
+char* value = return_a_pointer();
+*value = 10;
+x = (mystery_t) value;
+
+The x value should be of type: uintptr_t  as if the pointer needed to be used again the 
+MMU would be confused if the pointer returned a physical address of whether 
+it needed to treat the address given by the pointer as physical or virtual.
+
+Questions 2.
+
+1023         | ffc0_0000 | Page table for top 4MB of physical memory
+992-1022     | f800_0000 | Remapped physical memory
+961-991      | f040_0000 | Remapped physical memory
+960          | f000_0000 | Points to KSTACKTOP, KERNBASE. Setting up the stack allocated using boot_map_region
+959          | efc0_0000 | Points to MMIOLIM - Memory Mapped IO
+957          | ef40_0000 | Points to read-only virtual page table, UVPT. 
+956          | ef00_0000 | Points to read-only copies of the Page structures, UPAGES. Allocated using boot_map_region
+2            | 0080_0000 | Doesn't exist
+1            | 0040_0000 | Doesn't exist
+0            | 0000_0000 | Doesn't exist
+
+Questions 3.
+We have placed the kernel and user environment in the same address space. 
+Why will user programs not be able to read or write the kernel’s memory? 
+What specific mechanisms protect the kernel memory?
+
+The protection method is the permission bits.
+The user will not be able to write or read to the kernels memory. 
+This is because the PTE_U bit was not set in the tables.
+
+Questions 4.
+What is the maximum amount of physical memory that this operating system can support? Why?
+
+The maximum amount of physical memory that this OS can support is 4 GB. 
+This is because there is one page directory with 2^10 table entries and each page table has 2^10 page entries with 
+each page being of size 4096. 2^10*2^10*4096 = 4 GB
+
+Questions 5.
+How much space overhead is there for managing memory, if we actually had the maximum amount of physical memory?
+How is this overhead broken down? 
+
+Overhead break down
+Page Info Structures 32768 * 8(size of struct) /1024 = 256 KB
+1024 Page directory entries * 4 Bytes (32 bit pointer)
+1024 Page Tables * 1024 Table Entries/Page Table * 4 Bytes(32 bit pointer) = 4 MB 
+4MB+ 4KB + 256 KB = 4.2539 MB
+
+Questions 6.
+Revisit the page table setup in kern/entry.S and kern/entrypgdir.c. Immediately after we turn on paging, 
+EIP is still a low number (a little over 1MB). At what point do we transition to running at an EIP above KERNBASE? 
+What makes it possible for us to continue executing at a low EIP between when we enable paging and 
+when we begin running at an EIP above KERNBASE? Why is this transition necessary?
+
+We move to a higher EIP above kernbase when we run the assembly instructions:
+Mov $relocated, %eax
+Jmp *%eax
+
+This transition is necessary because BIOS runs at the lower EIP while later on the system requires more space.
+It is possible to continue execution at a low EIP between when paging is enabled and running at an EIP 
+above kernbase as the paging tables have not been set up yet.
+
+
+
