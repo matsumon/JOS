@@ -37,9 +37,9 @@ sched_yield(void)
             }
         }
     }else{
-        for(i = curenv->env_id; i < NENV; i++){
-            if(envs[i].env_status == ENV_RUNNABLE){
-                env_run(&envs[i]);
+        for(i = curenv->env_id; i < NENV + curenv->env_id; i++){
+            if(envs[i%NENV].env_status == ENV_RUNNABLE){
+                env_run(&envs[i%NENV]);
             }
         }
     }
