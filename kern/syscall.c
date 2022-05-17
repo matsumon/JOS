@@ -85,7 +85,16 @@ sys_exofork(void)
 	// will appear to return 0.
 
 	// LAB 4: Your code here.
-	panic("sys_exofork not implemented");
+    struct Env *e;
+    int i = env_alloc(&e,curenv ? curenv->env_id : 0);
+    if(i != 0){
+        return i;
+    }
+    e->env_status= ENV_NOT_RUNNABLE;
+    e->env_tf = curenv->env_tf;
+    e->env_tf.tf_regs.reg_eax = 0;
+    return e->env_id;
+//	panic("sys_exofork not implemented");
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -105,7 +114,27 @@ sys_env_set_status(envid_t envid, int status)
 	// envid's status.
 
 	// LAB 4: Your code here.
-	panic("sys_env_set_status not implemented");
+    struct Env *e;
+    struct Env ** env_store;
+    e  = &envs[ENVX(envid)];
+    if(e->env_status == ENV_FREE || e->env_id != envid){
+        *env_store = 0;
+        return -E_BAD_ENV;
+    }
+    if(e != curenv && e->env_parent_id != curenv->env_id){
+        *env_store = 0;
+        return -E_BAD_ENV;
+    }
+    int a = envid2env(envid, &e, 1);
+    if(a != 0){
+        return -E_BAD_ENV;
+    }
+    if(status != ENV_RUNNABLE || status != ENV_NOT_RUNNABLE){
+        return -E_INVAL;
+    }
+    e->env_status = status;
+    return 0;
+//	panic("sys_env_set_status not implemented");
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
