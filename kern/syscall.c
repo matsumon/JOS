@@ -129,11 +129,11 @@ sys_env_set_status(envid_t envid, int status)
     if(a != 0){
         return -E_BAD_ENV;
     }
-    if(status != ENV_RUNNABLE || status != ENV_NOT_RUNNABLE){
-        return -E_INVAL;
+    if(status == ENV_RUNNABLE || status == ENV_NOT_RUNNABLE){
+        e->env_status = status;
+        return 0;
     }
-    e->env_status = status;
-    return 0;
+    return -E_INVAL;
 //	panic("sys_env_set_status not implemented");
 }
 
