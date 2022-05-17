@@ -179,7 +179,35 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
 
 	// LAB 4: Your code here.
-	panic("sys_page_alloc not implemented");
+    struct PageInfo * pp;
+    pp = page_alloc(ALLOC_ZERO);
+    if(pp== NULL){
+        return -E_NO_MEM;
+    }
+    struct Env *env;
+    int a = envid2env(envid, &env, 1);
+    if(a != 0){
+        return -E_BAD_ENV;
+    }
+    int b = page_insert(env->env_pgdir,pp,va,perm);
+    if(b != 0){
+        page_free(pp);
+        return -E_NO_MEM;
+    }
+    if((uint32_t)va>= UTOP || PGOFF(va) != 0){
+        return -E_INVAL;
+    }
+    if((perm & 0xfff) & (~PTE_SYSCALL)){
+        return -E_INVAL;
+    }
+    if((uintptr_t)va & 0xfff){
+        return -E_INVAL;
+    }
+    if((perm | PTE_U | PTE_P) != (perm & PTE_U & PTE_P)){
+        return -E_INVAL;
+    }
+    return 0;
+//	panic("sys_page_alloc not implemented");
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
@@ -210,7 +238,27 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
-	panic("sys_page_map not implemented");
+    struct Env ** srcenv;
+    struct Env ** dstenv;
+    int srcA = envid2env(srcenvid,srcenv,1);
+    int dstA = envid2env(dstenvid,dstenv,1);
+    if(srcA != 0 || dstA != 0){
+        return -E_BAD_ENV;
+    }
+    if(srcva >=UTOP || PGOFF(srcva)!=0){
+        return -E_INVAL;
+    }
+    if(dstva >=UTOP || PGOFF(dstva)!=0){
+        return -E_INVAL;
+    }
+    struct PageInfo * page;
+    pte_t ** pte;
+    page = page_lookup((*srcenv)->env_pgdir,srcva,pte);
+    if(page == NULL){
+        return -E_INVAL;
+    }
+    if((**pte & PTE_W) != (**pte | PTE_W) &&
+//	panic("sys_page_map not implemented");
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
