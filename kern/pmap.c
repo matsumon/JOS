@@ -336,9 +336,14 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	// cprintf("npages_basemem %p\nIOPHYSMEM %p\nEXTPHYSMEM %p\n",npages_basemem, IOPHYSMEM,EXTPHYSMEM);
 	for (i = 1; i < npages_basemem; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		if(i == (MPENTRY_PADDR / PGSIZE)){
+			pages[i].pp_ref = 1;
+		}
+		else{
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 
 	int io_hole_start = IOPHYSMEM/PGSIZE;
@@ -637,7 +642,17 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+	uint32_t pa_start = ROUNDDOWN(pa,PGSIZE);
+	uint32_t pa_end = ROUNDUP(pa+size,PGSIZE);
+	if(pa_end >= MMIOLIM){
+		panic("mmio_map_region line 643 overflow memory request");
+	}
+	uint32_t pa_offset = pa & 0xfff;
+	//  from yeoungins tutorial but doesnt seem necessary
+	// uint32_t va_start = base;
+	// uint32_t new_base = va_start + pa_end - pa_start;
+	boot_map_region(kern_pgdir, base, ROUNDUP(size,PGSIZE), pa, PTE_PCD|PTE_PWT|PTE_W );
+	return (void *)(base + pa_offset);
 }
 
 static uintptr_t user_mem_check_addr;
