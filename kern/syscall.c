@@ -184,17 +184,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
     if(pp== NULL){
         return -E_NO_MEM;
     }
-    struct Env *env;
-    int a = envid2env(envid, &env, 1);
-    if(a != 0){
-        return -E_BAD_ENV;
-    }
-    int b = page_insert(env->env_pgdir,pp,va,perm);
-    if(b != 0){
-        page_free(pp);
-        return -E_NO_MEM;
-    }
-    if((uint32_t)va>= UTOP || PGOFF(va) != 0){
+	if((uint32_t)va>= UTOP || PGOFF(va) != 0){
         return -E_INVAL;
     }
     if((perm & 0xfff) & (~PTE_SYSCALL)){
@@ -206,6 +196,17 @@ sys_page_alloc(envid_t envid, void *va, int perm)
     if((perm | PTE_U | PTE_P) != (perm & PTE_U & PTE_P)){
         return -E_INVAL;
     }
+    struct Env *env;
+    int a = envid2env(envid, &env, 1);
+    if(a != 0){
+        return -E_BAD_ENV;
+    }
+    int b = page_insert(env->env_pgdir,pp,va,perm);
+    if(b != 0){
+        page_free(pp);
+        return -E_NO_MEM;
+    }
+
     return 0;
 //	panic("sys_page_alloc not implemented");
 }
