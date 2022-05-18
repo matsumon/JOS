@@ -190,10 +190,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
     if((perm & 0xfff) & (~PTE_SYSCALL)){
         return -E_INVAL;
     }
-    if((uintptr_t)va & 0xfff){
-        return -E_INVAL;
-    }
-    if((perm | PTE_U | PTE_P) != (perm & PTE_U & PTE_P)){
+
+    if((PTE_U | PTE_P) != (perm & (PTE_U | PTE_P))){
         return -E_INVAL;
     }
     struct Env *env;
@@ -239,10 +237,10 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
-    struct Env **srcenv = NULL;
-    struct Env **dstenv = NULL;
-    int srcA = envid2env(srcenvid,srcenv,1);
-    int dstA = envid2env(dstenvid,dstenv,1);
+    struct Env *srcenv = NULL;
+    struct Env *dstenv = NULL;
+    int srcA = envid2env(srcenvid,&srcenv,1);
+    int dstA = envid2env(dstenvid,&dstenv,1);
     if(srcA != 0 || dstA != 0){
         return -E_BAD_ENV;
     }
@@ -253,24 +251,25 @@ sys_page_map(envid_t srcenvid, void *srcva,
         return -E_INVAL;
     }
     struct PageInfo * page;
-    pte_t ** pte = NULL;
-    page = page_lookup((*srcenv)->env_pgdir,srcva,pte);
+    pte_t * pte = NULL;
+    page = page_lookup((srcenv)->env_pgdir,srcva,&pte);
     if(page == NULL){
         return -E_INVAL;
     }
-    if((**pte & PTE_W) != (**pte | PTE_W)){
-		return -E_INVAL;
-	}
-    if((perm | PTE_W) != (perm & PTE_W)){
-		return -E_INVAL;
-	}
-	if ((perm & ~(PTE_SYSCALL)) != 0) {
+	if((PTE_U | PTE_P) != (perm & (PTE_U | PTE_P))){
 		return -E_INVAL;
     }
-	int page_insert_success = page_insert((*dstenv)->env_pgdir, page, dstva, perm);
+    if(((*pte & PTE_W) != (PTE_W)) && ((perm | PTE_W) == ( PTE_W))){
+		return -E_INVAL;
+	}
+	if (((perm & 0xfff) & ~(PTE_SYSCALL)) != 0) {
+		return -E_INVAL;
+    }
+	int page_insert_success = page_insert((dstenv)->env_pgdir, page, dstva, perm);
 	if(page_insert_success != 0){
 		return -E_NO_MEM;
 	}
+
 	return 0;
 //	panic("sys_page_map not implemented");
 }
@@ -288,16 +287,15 @@ sys_page_unmap(envid_t envid, void *va)
 	// Hint: This function is a wrapper around page_remove().
 
 	// LAB 4: Your code here.
-    struct Env ** env = NULL;
-    int srcA = envid2env(envid,env,1);
-	int success_remove = envid2env(envid,env,1);
+    struct Env * env = NULL;
+	int success_remove = envid2env(envid,&env,1);
 	if(success_remove != 0){
 		return -E_BAD_ENV;
 	}
 	if((uint32_t)va >= UTOP || PGOFF(va)!= 0){
 		return -E_INVAL;
 	}
-	page_remove((*env)->env_pgdir,va);
+	page_remove((env)->env_pgdir,va);
 	return 0;
 
 	// panic("sys_page_unmap not implemented");
