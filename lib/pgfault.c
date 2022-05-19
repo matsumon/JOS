@@ -29,7 +29,7 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 	if (_pgfault_handler == 0) {
 		// First time through!
 		// LAB 4: Your code here.
-		int alloc_success = sys_page_alloc(thisenv->env_id, (void *)(USTACKTOP-PGSIZE), PTE_U | PTE_P | PTE_W);
+		int alloc_success = sys_page_alloc(thisenv->env_id, (void *)(UXSTACKTOP-PGSIZE), PTE_U | PTE_P | PTE_W);
 		if(alloc_success != 0){
 			panic("set_pgfault_handler in pgfault.c line 34 page allocation issue");
 		}
@@ -43,3 +43,4 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 	// Save handler pointer for assembly to call.
 	_pgfault_handler = handler;
 }
+
