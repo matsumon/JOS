@@ -65,12 +65,16 @@ _pgfault_upcall:
 	// ways as registers become unavailable as scratch space.
 	//
 	// LAB 4: Your code here.
-	add $8, %esp
-	popa
-	add $4, %esp
-	popf
-	lea 4(%esp), %esp
-	pop %esp
+	movl 40(%esp), %eax
+	movl 48(%esp), %ecx 
+	movl %eax, -4(%ecx)
+	addl $8, %esp
+
+	popal
+	addl $4, %esp
+	popfl
+
+	popl %esp
 	lea -4(%esp), %esp
 	ret
 	// Restore the trap-time registers.  After you do this, you
