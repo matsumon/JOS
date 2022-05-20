@@ -94,6 +94,23 @@ trap_init(void)
 	void t_align();
 	void t_syscall();
 
+	void t_irq_timer();
+	void t_irq_kbd();
+	void t_irq_2();
+	void t_irq_3();
+	void t_irq_serial();
+	void t_irq_5();
+	void t_irq_6();
+	void t_irq_spurious();
+	void t_irq_8();
+	void t_irq_9();
+	void t_irq_10();
+	void t_irq_11();
+	void t_irq_12();
+	void t_irq_13();
+	void t_irq_ide();
+	void t_irq_15();
+
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, t_divide, 0);
 	SETGATE(idt[T_DEBUG], 0, GD_KT, t_debug, 0);
 	SETGATE(idt[T_NMI], 0, GD_KT, t_nmi, 0);
@@ -113,6 +130,24 @@ trap_init(void)
 	SETGATE(idt[T_PGFLT], 0, GD_KT, t_pgflt, 0);
 	SETGATE(idt[T_ALIGN], 0, GD_KT, t_align, 0);
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, t_syscall, 3);
+
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, t_irq_timer, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, t_irq_kbd, 0);
+	SETGATE(idt[IRQ_OFFSET + 2], 0, GD_KT, t_irq_2, 0);
+	SETGATE(idt[IRQ_OFFSET + 3], 0, GD_KT, t_irq_3, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, t_irq_serial, 0);
+	SETGATE(idt[IRQ_OFFSET + 5], 0, GD_KT, t_irq_5, 0);
+	SETGATE(idt[IRQ_OFFSET + 6], 0, GD_KT, t_irq_6, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_SPURIOUS], 0, GD_KT, t_irq_spurious, 0);
+	SETGATE(idt[IRQ_OFFSET + 8], 0, GD_KT, t_irq_8, 0);
+	SETGATE(idt[IRQ_OFFSET + 9], 0, GD_KT, t_irq_9, 0);
+	SETGATE(idt[IRQ_OFFSET + 10], 0, GD_KT, t_irq_10, 0);
+	SETGATE(idt[IRQ_OFFSET + 11], 0, GD_KT, t_irq_11, 0);
+	SETGATE(idt[IRQ_OFFSET + 12], 0, GD_KT, t_irq_12, 0);
+	SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, t_irq_13, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, t_irq_ide, 0);
+	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, t_irq_15, 0);
+	
     /*
      *
      * HINT
@@ -269,6 +304,11 @@ trap_dispatch(struct Trapframe *tf)
 				tf->tf_regs.reg_esi
 			);
 			return;
+		}
+		case(IRQ_OFFSET + IRQ_TIMER):
+		{
+			lapic_eoi();
+			sched_yield();
 		}
 		default:
 		{
