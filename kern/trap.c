@@ -147,7 +147,7 @@ trap_init(void)
 	SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, t_irq_13, 0);
 	SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, t_irq_ide, 0);
 	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, t_irq_15, 0);
-	
+
     /*
      *
      * HINT
@@ -194,7 +194,7 @@ trap_init_percpu(void)
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
-	thiscpu->cpu_ts.ts_esp0 = KSTACKTOP;
+	thiscpu->cpu_ts.ts_esp0 = KSTACKTOP -thiscpu->cpu_id*(KSTKSIZE + KSTKGAP);
 	thiscpu->cpu_ts.ts_ss0 = GD_KD;
 	thiscpu->cpu_ts.ts_iomb = sizeof(struct Taskstate);
 
@@ -452,7 +452,6 @@ page_fault_handler(struct Trapframe *tf)
 		utf->utf_eflags = tf->tf_eflags;
 		utf->utf_esp = tf->tf_esp;
 
-		
 		tf->tf_eip = (uint32_t) curenv->env_pgfault_upcall;
 		tf->tf_esp = (uint32_t) utf;
 		env_run(curenv);
