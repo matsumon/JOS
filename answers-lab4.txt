@@ -1,0 +1,35 @@
+Question 1. Compare kern/mpentry.S side by side with boot/boot.S. 
+Bearing in mind that kern/mpentry.S is compiled and linked to run above KERNBASE just like everything else in the kernel, 
+what is the purpose of macro MPBOOTPHYS? Why is it necessary in kern/mpentry.S but not in boot/boot.S? In other words, 
+what could go wrong if it were omitted in kern/mpentry.S? Hint: recall the differences between the link address and the 
+load address that we have discussed in Lab 1.
+
+In boot.s the code is loaded into 0x7c00 while the entry point for the application processors need to be pointed to the 
+right location by  using the MPBOOTPHYS macro. 
+
+If the macro was omitted from mpentry.S then the program would fail because the AP’s load in real mode and 
+because the code sets DS to zero so it must run from an address in the low 2^16 bits of physical memory.
+    
+Question 2. It seems that using the big kernel lock guarantees that only one CPU can run the kernel code at a time. 
+Why do we still need separate kernel stacks for each CPU? Describe a scenario in which using a shared kernel stack 
+will go wrong, even with the protection of the big kernel lock.
+
+Separate kernel stacks for each CPU are required because when pushing the trapframe to the stack the CPU hasn’t 
+acquired the kernel lock yet. Therefore, another CPU could push a trapframe to the stack and when the first CPU 
+acquires the lock the second CPU will have to wait for the first CPU. However, the trapframe belonging to the second 
+CPU will get popped and reentry into the wrong environment as well as not handling the interrupt.
+
+Question 3. In your implementation of env_run() you should have called lcr3(). Before and after the call to lcr3(), 
+your code makes references (at least it should) to the variable e, the argument to env_run. Upon loading the %cr3 
+register, the addressing context used by the MMU is instantly changed. But a virtual address (namely e) has meaning 
+relative to a given address context–the address context specifies the physical address to which the virtual address 
+maps. Why can the pointer e be dereferenced both before and after the addressing switch?
+
+UENVS, the read-only copies of the global env structures is copied to all the virtual address maps which is why the e, 
+al env pointer can be copied before and after the addressing switch.
+
+Question 4. Whenever the kernel switches from one environment to another, it must ensure the old environment’s registers 
+are saved so they can be restored properly later. Why? Where does this happen?
+
+The kernel saves the old environments registers so that the kernel can switch between environments without issue.
+The old environment registers are saved to a trapframe that is pushed onto the kernels stack.
