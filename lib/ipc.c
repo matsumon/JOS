@@ -85,7 +85,7 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	int success_send = sys_ipc_try_send(to_env, val, pg, perm);
 	while(success_send != 0 && pg != NULL){
 		if(success_send != -E_IPC_NOT_RECV ){
-			panic("ERROR OTHER THAN -E_IPC_NOT_RECV IPC.C /lib line 88");
+			panic("ERROR OTHER THAN -E_IPC_NOT_RECV IPC.C /lib line 88 %e", success_send);
 		}
 		sys_yield();
 		success_send = sys_ipc_try_send(to_env, val, pg, perm);

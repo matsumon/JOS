@@ -388,8 +388,10 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 //		address space.
 	int success_insert = -1;
 	if ((uint32_t)srcva < UTOP) {
-		page_insert(env->env_pgdir, page, env->env_ipc_dstva, perm);
+		success_insert = page_insert(env->env_pgdir, page, env->env_ipc_dstva, perm);
 		if(success_insert != 0){
+			env->env_ipc_perm = 0;
+
 			return -E_NO_MEM;
 		}
 		env->env_ipc_perm = perm;
